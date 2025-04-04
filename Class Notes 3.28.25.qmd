@@ -1,0 +1,158 @@
+---
+title: "Class Notes 3.28.35 - 04.02.25"
+format: html
+embed-resources: true
+---
+
+```{r}
+#| label: setup
+#| message: false
+
+library(tidyverse)
+library(readxl)
+library(modeldata)
+
+pokemon <- read_csv("pokemon (1).csv")
+trout <- read_excel("trout.xlsx")
+```
+
+Merges: combine two files that you have been working on
+
+## Git
+
+We talked about branches a bit. See my video on git branches and merges. 
+
+## Anova
+
+When to use Anova:  
+Inference with 2 variables
+1. 2 categorical (x^2)  
+2. 2 quantitative (regression)  
+3. 1 categorical and 1 quantitative (anova)  
+
+We'll use the `pokemon` data set from Moodle. Also see my slide on anova on Moodle.
+
+Is `hp` consistent, on average, across generations?
+
+Null: the mean hp is the same for each generation (independent).
+
+Alternative: the mean hp is different for at least one generation (dependence).
+
+```{r}
+ggplot(pokemon,
+       aes(x = hp,
+           y = as.factor(generation))) + #as.character() also works here
+  geom_boxplot()
+```
+
+To run the test, we need `generation` to be categorical, so we do a `mutate` before the anova.
+
+```{r}
+pokemon <- pokemon %>% 
+  mutate(generation = as.factor(generation))
+
+aov(pokemon$hp ~ pokemon$generation)
+```
+
+To see the p-value, we save this output and then get a `summary`.
+
+```{r}
+model <- aov(hp ~ generation, 
+             data = pokemon) # same aov
+summary(model)
+```
+
+The p-value (.088) is not very small. There is only very weak evidence that the variables are dependent on one another. It appears that `generation` does not inform `hp`.
+
+## Example 2: trout
+
+```{r}
+glimpse(trout)
+```
+
+Are these variables independent?
+
+$H_0:$ `Hemo` is the same at different locations, on average.
+
+$H_a:$ At least one group mean is different.
+
+```{r}
+trout <- trout %>% 
+  mutate(Location = as.factor(Location))
+
+ggplot(trout,
+       aes(x = Location,
+           y = Hemo)) + 
+  geom_boxplot() + 
+  geom_jitter()
+```
+
+Let's run the anova.
+
+```{r}
+model <- aov(Hemo ~ Location,
+             data = trout)
+summary(model)
+```
+
+The p-value is very small, providing good evidence against the null. We can conclude that Hemo is informed by Location.
+
+(Last thing today: commit changes to the git repo) 
+
+## Apr. 2: Post-hoc testing
+
+If the anova leads to rejecting the null, we can consider pair-wise comparisons of the groups. HOWEVER, we have to be honest about the fact that there are many possible comparisons. One very common way to do this is the **Tukey Honest Standard Differences Test**.
+
+```{r}
+TukeyHSD(model)
+```
+
+## Comparing two quantitative variables
+
+```{r}
+glimpse(crickets)
+```
+
+Null hypothesis: `rate` is independent of `temp`.
+
+Alternative: `rate` is not independent of `temp`.
+
+More specifically, we'll test for a linear dependence. That is, we'll test if the slope of regression line is nonzero.
+
+```{r}
+ggplot(crickets, 
+       aes(x = temp,
+           y = rate)) + 
+  geom_point() + 
+  geom_smooth(method = "lm",
+              se = FALSE)
+```
+
+More specific hypothesis:
+
+Null: the slope is zero in the population from which we are sampling.
+
+Alternative: the slope is nonzero
+
+Let's run this test.
+
+```{r}
+lm(rate ~ temp,
+   data = crickets) # syntax just like aov
+```
+
+The equation of the regression line rate = -27.948 + 4.243*temp. We extract more information (including a p-value for our test) by saving the model and getting a summary.
+
+```{r}
+model <- lm(rate ~ temp,
+   data = crickets)
+summary(model)
+```
+
+The p-value for the slope is infinitesimal. We reject the null and conclude there is a non-zero slope, that rate is dependent on temp.
+
+
+
+
+
+
